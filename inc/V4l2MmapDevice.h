@@ -15,7 +15,7 @@
  
 #include "V4l2Device.h"
 
-#define V4L2MMAP_NBBUFFER 10
+#define V4L2MMAP_NBBUFFER 5
 
 class V4l2MmapDevice : public V4l2Device
 {	

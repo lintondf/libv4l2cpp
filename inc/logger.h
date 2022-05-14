@@ -38,7 +38,7 @@ inline void initLogger(int verbose)
 	{
 		case 2: log.setPriority(log4cpp::Priority::DEBUG); break;
 		case 1: log.setPriority(log4cpp::Priority::INFO); break;
-		default: log.setPriority(log4cpp::Priority::NOTICE); break;
+		default: log.setPriority(log4cpp::Priority::ERROR); break;
 		
 	}
 	LOG(INFO) << "level:" << log4cpp::Priority::getPriorityName(log.getPriority()); 
