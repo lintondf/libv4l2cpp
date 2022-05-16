@@ -23,7 +23,7 @@
 // -----------------------------------------
 //    create video capture interface
 // -----------------------------------------
-V4l2Capture* V4l2Capture::create(const V4L2DeviceParameters & param)
+V4l2Capture* V4l2Capture::create(const V4L2DeviceParameters & param, bool start)
 {
 	V4l2Capture* videoCapture = NULL;
 	V4l2Device* videoDevice = NULL; 
@@ -40,7 +40,7 @@ V4l2Capture* V4l2Capture::create(const V4L2DeviceParameters & param)
 		break;
 	}
 	
-	if (videoDevice &&  !videoDevice->init(caps))
+	if (videoDevice &&  !videoDevice->init(caps, start))
 	{
 		delete videoDevice;
 		videoDevice=NULL; 

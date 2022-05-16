@@ -67,20 +67,19 @@ void V4l2Device::queryFormat()
 		m_width      = fmt.fmt.pix.width;
 		m_height     = fmt.fmt.pix.height;
 		m_bufferSize = fmt.fmt.pix.sizeimage;
-
-		LOG(DEBUG) << m_params.m_devName << ":" << fourcc(m_format) << " size:" << m_width << "x" << m_height << " bufferSize:" << m_bufferSize;
+		LOG4CPLUS_INFO(logger, LOG4CPLUS_TEXT("") << m_params.m_devName << ":" << fourcc(m_format) << " size:" << m_width << "x" << m_height << " bufferSize:" << m_bufferSize);
 	}
 }
 
 // intialize the V4L2 connection
-bool V4l2Device::init(unsigned int mandatoryCapabilities)
+bool V4l2Device::init(unsigned int mandatoryCapabilities, bool start)
 {
 	struct stat sb;
 	if ( (stat(m_params.m_devName.c_str(), &sb)==0) && ((sb.st_mode & S_IFMT) == S_IFCHR) )
 	{
 		if (initdevice(m_params.m_devName.c_str(), mandatoryCapabilities) == -1)
 		{
-			LOG(ERROR) << "Cannot init device:" << m_params.m_devName;
+			LOG4CPLUS_ERROR(logger, LOG4CPLUS_TEXT("Cannot init device:") << m_params.m_devName);
 		}
 	}
 	else
@@ -97,7 +96,7 @@ int V4l2Device::initdevice(const char *dev_name, unsigned int mandatoryCapabilit
 	m_fd = open(dev_name,  m_params.m_openFlags);
 	if (m_fd < 0) 
 	{
-		LOG(ERROR) << "Cannot open device:" << m_params.m_devName << " " << strerror(errno);
+		LOG4CPLUS_ERROR(logger, LOG4CPLUS_TEXT("Cannot open device:") << m_params.m_devName << " " << strerror(errno));
 		this->close();
 		return -1;
 	}
@@ -127,22 +126,22 @@ int V4l2Device::checkCapabilities(int fd, unsigned int mandatoryCapabilities)
 	memset(&(cap), 0, sizeof(cap));
 	if (-1 == ioctl(fd, VIDIOC_QUERYCAP, &cap)) 
 	{
-		LOG(ERROR) << "Cannot get capabilities for device:" << m_params.m_devName << " " << strerror(errno);
+		LOG4CPLUS_ERROR(logger, LOG4CPLUS_TEXT("Cannot get capabilities for device:") << m_params.m_devName << " " << strerror(errno));
 		return -1;
 	}
-	LOG(NOTICE) << "driver:" << cap.driver << " capabilities:" << std::hex << cap.capabilities <<  " mandatory:" << mandatoryCapabilities << std::dec;
+	LOG4CPLUS_INFO(logger, LOG4CPLUS_TEXT("driver:") << cap.driver << " capabilities:" << std::hex << cap.capabilities <<  " mandatory:" << mandatoryCapabilities << std::dec);
 		
-	if ((cap.capabilities & V4L2_CAP_VIDEO_OUTPUT))  LOG(NOTICE) << m_params.m_devName << " support output";
-	if ((cap.capabilities & V4L2_CAP_VIDEO_CAPTURE)) LOG(NOTICE) << m_params.m_devName << " support capture";
+	if ((cap.capabilities & V4L2_CAP_VIDEO_OUTPUT))  LOG4CPLUS_INFO(logger, LOG4CPLUS_TEXT("") << m_params.m_devName << " support output");
+	if ((cap.capabilities & V4L2_CAP_VIDEO_CAPTURE)) LOG4CPLUS_INFO(logger, LOG4CPLUS_TEXT("") << m_params.m_devName << " support capture");
 
-	if ((cap.capabilities & V4L2_CAP_READWRITE))     LOG(NOTICE) << m_params.m_devName << " support read/write";
-	if ((cap.capabilities & V4L2_CAP_STREAMING))     LOG(NOTICE) << m_params.m_devName << " support streaming";
+	if ((cap.capabilities & V4L2_CAP_READWRITE))     LOG4CPLUS_INFO(logger, LOG4CPLUS_TEXT("") << m_params.m_devName << " support read/write");
+	if ((cap.capabilities & V4L2_CAP_STREAMING))     LOG4CPLUS_INFO(logger, LOG4CPLUS_TEXT("") << m_params.m_devName << " support streaming");
 
-	if ((cap.capabilities & V4L2_CAP_TIMEPERFRAME))  LOG(NOTICE) << m_params.m_devName << " support timeperframe"; 
+	if ((cap.capabilities & V4L2_CAP_TIMEPERFRAME))  LOG4CPLUS_INFO(logger, LOG4CPLUS_TEXT("") << m_params.m_devName << " support timeperframe"); 
 	
 	if ( (cap.capabilities & mandatoryCapabilities) != mandatoryCapabilities )
 	{
-		LOG(ERROR) << "Mandatory capability not available for device:" << m_params.m_devName;
+		LOG4CPLUS_ERROR(logger, LOG4CPLUS_TEXT("Mandatory capability not available for device:") << m_params.m_devName);
 		return -1;
 	}
 	
@@ -189,7 +188,7 @@ int V4l2Device::configureFormat(int fd, unsigned int format, unsigned int width,
 	fmt.type                = m_deviceType;
 	if (ioctl(m_fd,VIDIOC_G_FMT,&fmt) == -1)
 	{
-		LOG(ERROR) << m_params.m_devName << ": Cannot get format " << strerror(errno);
+		LOG4CPLUS_ERROR(logger, LOG4CPLUS_TEXT("") << m_params.m_devName << ": Cannot get format " << strerror(errno));
 		return -1;
 	}
 	if (width != 0) {
@@ -204,17 +203,17 @@ int V4l2Device::configureFormat(int fd, unsigned int format, unsigned int width,
 	
 	if (ioctl(fd, VIDIOC_S_FMT, &fmt) == -1)
 	{
-		LOG(ERROR) << m_params.m_devName << ": Cannot set format:" << fourcc(format) << " " << strerror(errno);
+		LOG4CPLUS_ERROR(logger, LOG4CPLUS_TEXT("") << m_params.m_devName << ": Cannot set format:" << fourcc(format) << " " << strerror(errno));
 		return -1;
 	}			
 	if (fmt.fmt.pix.pixelformat != format) 
 	{
-		LOG(ERROR) << m_params.m_devName << ": Cannot set pixelformat to:" << fourcc(format) << " format is:" << fourcc(fmt.fmt.pix.pixelformat);
+		LOG4CPLUS_ERROR(logger, LOG4CPLUS_TEXT("") << m_params.m_devName << ": Cannot set pixelformat to:" << fourcc(format) << " format is:" << fourcc(fmt.fmt.pix.pixelformat));
 		return -1;
 	}
 	if ((fmt.fmt.pix.width != width) || (fmt.fmt.pix.height != height))
 	{
-		LOG(WARN) << m_params.m_devName << ": Cannot set size to:" << width << "x" << height << " size is:"  << fmt.fmt.pix.width << "x" << fmt.fmt.pix.height;
+		LOG4CPLUS_WARN(logger, LOG4CPLUS_TEXT("") << m_params.m_devName << ": Cannot set size to:" << width << "x" << height << " size is:"  << fmt.fmt.pix.width << "x" << fmt.fmt.pix.height);
 	}
 	
 	m_format     = fmt.fmt.pix.pixelformat;
@@ -222,7 +221,7 @@ int V4l2Device::configureFormat(int fd, unsigned int format, unsigned int width,
 	m_height     = fmt.fmt.pix.height;		
 	m_bufferSize = fmt.fmt.pix.sizeimage;
 	
-	LOG(NOTICE) << m_params.m_devName << ":" << fourcc(m_format) << " size:" << m_width << "x" << m_height << " bufferSize:" << m_bufferSize;
+	LOG4CPLUS_INFO(logger, LOG4CPLUS_TEXT("") << m_params.m_devName << ":" << fourcc(m_format) << " size:" << m_width << "x" << m_height << " bufferSize:" << m_bufferSize);
 	
 	return 0;
 }
@@ -240,11 +239,11 @@ int V4l2Device::configureParam(int fd, int fps)
 
 		if (ioctl(fd, VIDIOC_S_PARM, &param) == -1)
 		{
-			LOG(WARN) << "Cannot set param for device:" << m_params.m_devName << " " << strerror(errno);
+			LOG4CPLUS_WARN(logger, LOG4CPLUS_TEXT("Cannot set param for device:") << m_params.m_devName << " " << strerror(errno));
 		}
 	
-		LOG(NOTICE) << "fps:" << param.parm.capture.timeperframe.numerator << "/" << param.parm.capture.timeperframe.denominator;
-		LOG(NOTICE) << "nbBuffer:" << param.parm.capture.readbuffers;
+		LOG4CPLUS_INFO(logger, LOG4CPLUS_TEXT("fps:") << param.parm.capture.timeperframe.numerator << "/" << param.parm.capture.timeperframe.denominator);
+		LOG4CPLUS_INFO(logger, LOG4CPLUS_TEXT("nbBuffer:") << param.parm.capture.readbuffers);
 	}
 	
 	return 0;

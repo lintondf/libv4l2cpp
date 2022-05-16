@@ -9,6 +9,8 @@
 
 #include "logger.h"
 
+
 #ifndef HAVE_LOG4CPP
 int LogLevel=NOTICE;
+std::ofstream logstream;
 #endif

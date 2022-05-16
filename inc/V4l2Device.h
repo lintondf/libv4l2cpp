@@ -76,7 +76,7 @@ class V4l2Device
 		int configureFormat(int fd, unsigned int format, unsigned int width, unsigned int height);
 		int configureParam(int fd, int fps);
 
-		virtual bool   init(unsigned int mandatoryCapabilities);		
+		virtual bool   init(unsigned int mandatoryCapabilities, bool start=true);		
 		virtual size_t writeInternal(char*, size_t)        { return -1;    }
 		virtual bool   startPartialWrite()                 { return false; }
 		virtual size_t writePartialInternal(char*, size_t) { return -1;    }

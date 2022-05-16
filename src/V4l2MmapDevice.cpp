@@ -28,10 +28,10 @@ V4l2MmapDevice::V4l2MmapDevice(const V4L2DeviceParameters & params, v4l2_buf_typ
 	memset(&m_buffer, 0, sizeof(m_buffer));
 }
 
-bool V4l2MmapDevice::init(unsigned int mandatoryCapabilities)
+bool V4l2MmapDevice::init(unsigned int mandatoryCapabilities, bool start)
 {
-	bool ret = V4l2Device::init(mandatoryCapabilities);
-	if (ret)
+	bool ret = V4l2Device::init(mandatoryCapabilities, start);
+	if (ret && start)
 	{
 		ret = this->start();
 	}
@@ -46,7 +46,7 @@ V4l2MmapDevice::~V4l2MmapDevice()
 
 bool V4l2MmapDevice::start() 
 {
-	LOG(NOTICE) << "Device " << m_params.m_devName;
+	LOG4CPLUS_INFO(logger, LOG4CPLUS_TEXT("Device ") << m_params.m_devName);
 
 	bool success = true;
 	struct v4l2_requestbuffers req;
@@ -59,7 +59,7 @@ bool V4l2MmapDevice::start()
 	{
 		if (EINVAL == errno) 
 		{
-			LOG(ERROR) << "Device " << m_params.m_devName << " does not support memory mapping";
+			LOG4CPLUS_ERROR(logger, LOG4CPLUS_TEXT("Device ") << m_params.m_devName << " does not support memory mapping");
 			success = false;
 		} 
 		else 
@@ -70,7 +70,7 @@ bool V4l2MmapDevice::start()
 	}
 	else
 	{
-		LOG(NOTICE) << "Device " << m_params.m_devName << " nb buffer:" << req.count;
+		LOG4CPLUS_INFO(logger, LOG4CPLUS_TEXT("Device ") << m_params.m_devName << " nb buffer:" << req.count);
 		
 		// allocate buffers
 		memset(&m_buffer,0, sizeof(m_buffer));
@@ -89,7 +89,7 @@ bool V4l2MmapDevice::start()
 			}
 			else
 			{
-				LOG(INFO) << "Device " << m_params.m_devName << " buffer idx:" << n_buffers << " size:" << buf.length << " offset:" << buf.m.offset;
+				LOG4CPLUS_INFO(logger, LOG4CPLUS_TEXT("Device ") << m_params.m_devName << " buffer idx:" << n_buffers << " size:" << buf.length << " offset:" << buf.m.offset);
 				m_buffer[n_buffers].length = buf.length;
 				if (!m_buffer[n_buffers].length) {
 					m_buffer[n_buffers].length = buf.bytesused;
@@ -138,7 +138,7 @@ bool V4l2MmapDevice::start()
 
 bool V4l2MmapDevice::stop() 
 {
-	LOG(NOTICE) << "Device " << m_params.m_devName;
+	LOG4CPLUS_INFO(logger, LOG4CPLUS_TEXT("Device ") << m_params.m_devName);
 
 	bool success = true;
 	
@@ -186,7 +186,7 @@ size_t V4l2MmapDevice::readInternal(char* buffer, size_t bufferSize)
 
 		if (-1 == ioctl(m_fd, VIDIOC_DQBUF, &buf)) 
 		{
-			perror("VIDIOC_DQBUF");
+			//perror("readInternal VIDIOC_DQBUF");
 			size = -1;
 		}
 		else if (buf.index < n_buffers)
@@ -195,7 +195,7 @@ size_t V4l2MmapDevice::readInternal(char* buffer, size_t bufferSize)
 			if (size > bufferSize)
 			{
 				size = bufferSize;
-				LOG(WARN) << "Device " << m_params.m_devName << " buffer truncated available:" << bufferSize << " needed:" << buf.bytesused;
+				LOG4CPLUS_WARN(logger, LOG4CPLUS_TEXT("Device ") << m_params.m_devName << " buffer truncated available:" << bufferSize << " needed:" << buf.bytesused);
 			}
 			memcpy(buffer, m_buffer[buf.index].start, size);
 
@@ -221,7 +221,7 @@ size_t V4l2MmapDevice::writeInternal(char* buffer, size_t bufferSize)
 
 		if (-1 == ioctl(m_fd, VIDIOC_DQBUF, &buf)) 
 		{
-			perror("VIDIOC_DQBUF");
+			perror("writeInternal VIDIOC_DQBUF");
 			size = -1;
 		}
 		else if (buf.index < n_buffers)
@@ -229,7 +229,7 @@ size_t V4l2MmapDevice::writeInternal(char* buffer, size_t bufferSize)
 			size = bufferSize;
 			if (size > buf.length)
 			{
-				LOG(WARN) << "Device " << m_params.m_devName << " buffer truncated available:" << buf.length << " needed:" << size;
+				LOG4CPLUS_WARN(logger, LOG4CPLUS_TEXT("Device ") << m_params.m_devName << " buffer truncated available:" << buf.length << " needed:" << size);
 				size = buf.length;
 			}
 			memcpy(m_buffer[buf.index].start, buffer, size);
@@ -256,7 +256,7 @@ bool V4l2MmapDevice::startPartialWrite()
 	m_partialWriteBuf.memory = V4L2_MEMORY_MMAP;
 	if (-1 == ioctl(m_fd, VIDIOC_DQBUF, &m_partialWriteBuf))
 	{
-		perror("VIDIOC_DQBUF");
+		perror("startPartialWrite VIDIOC_DQBUF");
 		return false;
 	}
 	m_partialWriteBuf.bytesused = 0;
@@ -275,7 +275,7 @@ size_t V4l2MmapDevice::writePartialInternal(char* buffer, size_t bufferSize)
 			new_size = m_partialWriteBuf.bytesused + bufferSize;
 			if (new_size > m_partialWriteBuf.length)
 			{
-				LOG(WARN) << "Device " << m_params.m_devName << " buffer truncated available:" << m_partialWriteBuf.length << " needed:" << new_size;
+				LOG4CPLUS_WARN(logger, LOG4CPLUS_TEXT("Device ") << m_params.m_devName << " buffer truncated available:" << m_partialWriteBuf.length << " needed:" << new_size);
 				new_size = m_partialWriteBuf.length;
 			}
 			size = new_size - m_partialWriteBuf.bytesused;

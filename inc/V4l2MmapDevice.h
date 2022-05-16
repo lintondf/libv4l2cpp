@@ -15,7 +15,7 @@
  
 #include "V4l2Device.h"
 
-#define V4L2MMAP_NBBUFFER 5
+#define V4L2MMAP_NBBUFFER 2
 
 class V4l2MmapDevice : public V4l2Device
 {	
@@ -30,7 +30,7 @@ class V4l2MmapDevice : public V4l2Device
 		V4l2MmapDevice(const V4L2DeviceParameters & params, v4l2_buf_type deviceType);		
 		virtual ~V4l2MmapDevice();
 
-		virtual bool init(unsigned int mandatoryCapabilities);
+		virtual bool init(unsigned int mandatoryCapabilities, bool start=true);
 		virtual bool isReady() { return  ((m_fd != -1)&& (n_buffers != 0)); }
 		virtual bool start();
 		virtual bool stop();

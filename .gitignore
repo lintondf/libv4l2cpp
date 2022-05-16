@@ -3,3 +3,6 @@ src/*.o
 *.cmake
 CMakeCache.txt
 CMakeFiles/
+build/**
+.gitignore
+.vscode/**
