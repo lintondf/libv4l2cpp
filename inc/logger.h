@@ -86,10 +86,15 @@ inline void initLogger(int verbose) {
 #include <log4cplus/loggingmacros.h>
 #include <log4cplus/ndc.h>
 #include <string>
+#include <system_error>
 
 using namespace log4cplus;
 
 extern Logger logger;
+
+inline void LOG4CPLUS_PERROR(Logger logger, const char* message) {
+  LOG4CPLUS_ERROR(logger, LOG4CPLUS_TEXT(message) << " (" << errno << ") " << std::system_category().message(errno) );
+}
 // extern int LogLevel;
 //#define LOG(__level)if (__level <= WARN) std::cout << "\n" <<
 // getCurrentTimestamp() << " [" << #__level << "] " // << __FILE__ << ":" <<

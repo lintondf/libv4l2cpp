@@ -46,7 +46,7 @@ V4l2MmapDevice::~V4l2MmapDevice()
 
 bool V4l2MmapDevice::start() 
 {
-	LOG4CPLUS_INFO(logger, LOG4CPLUS_TEXT("Device ") << m_params.m_devName);
+	LOG4CPLUS_DEBUG(logger, LOG4CPLUS_TEXT("Device ") << m_params.m_devName);
 
 	bool success = true;
 	struct v4l2_requestbuffers req;
@@ -64,13 +64,13 @@ bool V4l2MmapDevice::start()
 		} 
 		else 
 		{
-			perror("VIDIOC_REQBUFS");
+			LOG4CPLUS_PERROR(logger, "VIDIOC_REQBUFS");
 			success = false;
 		}
 	}
 	else
 	{
-		LOG4CPLUS_INFO(logger, LOG4CPLUS_TEXT("Device ") << m_params.m_devName << " nb buffer:" << req.count);
+		LOG4CPLUS_DEBUG(logger, LOG4CPLUS_TEXT("Device ") << m_params.m_devName << " nb buffer:" << req.count);
 		
 		// allocate buffers
 		memset(&m_buffer,0, sizeof(m_buffer));
@@ -84,12 +84,12 @@ bool V4l2MmapDevice::start()
 
 			if (-1 == ioctl(m_fd, VIDIOC_QUERYBUF, &buf))
 			{
-				perror("VIDIOC_QUERYBUF");
+				LOG4CPLUS_PERROR(logger, "VIDIOC_QUERYBUF");
 				success = false;
 			}
 			else
 			{
-				LOG4CPLUS_INFO(logger, LOG4CPLUS_TEXT("Device ") << m_params.m_devName << " buffer idx:" << n_buffers << " size:" << buf.length << " offset:" << buf.m.offset);
+				LOG4CPLUS_DEBUG(logger, LOG4CPLUS_TEXT("Device ") << m_params.m_devName << " buffer idx:" << n_buffers << " size:" << buf.length << " offset:" << buf.m.offset);
 				m_buffer[n_buffers].length = buf.length;
 				if (!m_buffer[n_buffers].length) {
 					m_buffer[n_buffers].length = buf.bytesused;
@@ -103,7 +103,7 @@ bool V4l2MmapDevice::start()
 
 				if (MAP_FAILED == m_buffer[n_buffers].start)
 				{
-					perror("mmap");
+					LOG4CPLUS_PERROR(logger, "mmap");
 					success = false;
 				}
 			}
@@ -120,7 +120,7 @@ bool V4l2MmapDevice::start()
 
 			if (-1 == ioctl(m_fd, VIDIOC_QBUF, &buf))
 			{
-				perror("VIDIOC_QBUF");
+				LOG4CPLUS_PERROR(logger, "VIDIOC_QBUF");
 				success = false;
 			}
 		}
@@ -129,7 +129,7 @@ bool V4l2MmapDevice::start()
 		int type = m_deviceType;
 		if (-1 == ioctl(m_fd, VIDIOC_STREAMON, &type))
 		{
-			perror("VIDIOC_STREAMON");
+			LOG4CPLUS_PERROR(logger, "VIDIOC_STREAMON");
 			success = false;
 		}
 	}
@@ -138,14 +138,14 @@ bool V4l2MmapDevice::start()
 
 bool V4l2MmapDevice::stop() 
 {
-	LOG4CPLUS_INFO(logger, LOG4CPLUS_TEXT("Device ") << m_params.m_devName);
+	LOG4CPLUS_DEBUG(logger, LOG4CPLUS_TEXT("Device ") << m_params.m_devName);
 
 	bool success = true;
 	
 	int type = m_deviceType;
 	if (-1 == ioctl(m_fd, VIDIOC_STREAMOFF, &type))
 	{
-		perror("VIDIOC_STREAMOFF");      
+		LOG4CPLUS_PERROR(logger, "VIDIOC_STREAMOFF");      
 		success = false;
 	}
 
@@ -153,7 +153,7 @@ bool V4l2MmapDevice::stop()
 	{
 		if (-1 == munmap (m_buffer[i].start, m_buffer[i].length))
 		{
-			perror("munmap");
+			LOG4CPLUS_PERROR(logger, "munmap");
 			success = false;
 		}
 	}
@@ -166,7 +166,7 @@ bool V4l2MmapDevice::stop()
 	req.memory              = V4L2_MEMORY_MMAP;
 	if (-1 == ioctl(m_fd, VIDIOC_REQBUFS, &req)) 
 	{
-		perror("VIDIOC_REQBUFS");
+		LOG4CPLUS_PERROR(logger, "VIDIOC_REQBUFS");
 		success = false;
 	}
 	
@@ -186,7 +186,7 @@ size_t V4l2MmapDevice::readInternal(char* buffer, size_t bufferSize)
 
 		if (-1 == ioctl(m_fd, VIDIOC_DQBUF, &buf)) 
 		{
-			//perror("readInternal VIDIOC_DQBUF");
+			LOG4CPLUS_PERROR(logger, "readInternal VIDIOC_DQBUF");
 			size = -1;
 		}
 		else if (buf.index < n_buffers)
@@ -201,7 +201,7 @@ size_t V4l2MmapDevice::readInternal(char* buffer, size_t bufferSize)
 
 			if (-1 == ioctl(m_fd, VIDIOC_QBUF, &buf))
 			{
-				perror("VIDIOC_QBUF");
+				LOG4CPLUS_PERROR(logger, "VIDIOC_QBUF");
 				size = -1;
 			}
 		}
@@ -221,7 +221,7 @@ size_t V4l2MmapDevice::writeInternal(char* buffer, size_t bufferSize)
 
 		if (-1 == ioctl(m_fd, VIDIOC_DQBUF, &buf)) 
 		{
-			perror("writeInternal VIDIOC_DQBUF");
+			LOG4CPLUS_PERROR(logger, "writeInternal VIDIOC_DQBUF");
 			size = -1;
 		}
 		else if (buf.index < n_buffers)
@@ -237,7 +237,7 @@ size_t V4l2MmapDevice::writeInternal(char* buffer, size_t bufferSize)
 
 			if (-1 == ioctl(m_fd, VIDIOC_QBUF, &buf))
 			{
-				perror("VIDIOC_QBUF");
+				LOG4CPLUS_PERROR(logger, "VIDIOC_QBUF");
 				size = -1;
 			}
 		}
@@ -256,7 +256,7 @@ bool V4l2MmapDevice::startPartialWrite()
 	m_partialWriteBuf.memory = V4L2_MEMORY_MMAP;
 	if (-1 == ioctl(m_fd, VIDIOC_DQBUF, &m_partialWriteBuf))
 	{
-		perror("startPartialWrite VIDIOC_DQBUF");
+		LOG4CPLUS_PERROR(logger, "startPartialWrite VIDIOC_DQBUF");
 		return false;
 	}
 	m_partialWriteBuf.bytesused = 0;
@@ -298,7 +298,7 @@ bool V4l2MmapDevice::endPartialWrite()
 	}
 	if (-1 == ioctl(m_fd, VIDIOC_QBUF, &m_partialWriteBuf))
 	{
-		perror("VIDIOC_QBUF");
+		LOG4CPLUS_PERROR(logger, "VIDIOC_QBUF");
 		m_partialWriteInProgress = false; // abort partial write
 		return true;
 	}

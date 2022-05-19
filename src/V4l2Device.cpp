@@ -30,7 +30,7 @@ unsigned int V4l2Device::fourcc(const char* format) {
 	memset(&fourcc, 0, sizeof(fourcc));
 	if (format != NULL)
 	{
-		strncpy(fourcc, format, 4);	
+		memcpy(fourcc, format, 4);	
 	}
 	return v4l2_fourcc(fourcc[0], fourcc[1], fourcc[2], fourcc[3]);	
 }
