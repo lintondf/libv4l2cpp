@@ -28,6 +28,17 @@ V4l2MmapDevice::V4l2MmapDevice(const V4L2DeviceParameters & params, v4l2_buf_typ
 	memset(&m_buffer, 0, sizeof(m_buffer));
 }
 
+static int xioctl(int fh, int request, void* arg) {
+  int r;
+
+  do {
+    r = ioctl(fh, request, arg);
+  } while (-1 == r && (EINTR == errno || EAGAIN == errno));
+
+  return r;
+}
+
+
 bool V4l2MmapDevice::init(unsigned int mandatoryCapabilities, bool start)
 {
 	bool ret = V4l2Device::init(mandatoryCapabilities, start);
@@ -55,7 +66,7 @@ bool V4l2MmapDevice::start()
 	req.type                = m_deviceType;
 	req.memory              = V4L2_MEMORY_MMAP;
 
-	if (-1 == ioctl(m_fd, VIDIOC_REQBUFS, &req)) 
+	if (-1 == xioctl(m_fd, VIDIOC_REQBUFS, &req)) 
 	{
 		if (EINVAL == errno) 
 		{
@@ -82,7 +93,7 @@ bool V4l2MmapDevice::start()
 			buf.memory      = V4L2_MEMORY_MMAP;
 			buf.index       = n_buffers;
 
-			if (-1 == ioctl(m_fd, VIDIOC_QUERYBUF, &buf))
+			if (-1 == xioctl(m_fd, VIDIOC_QUERYBUF, &buf))
 			{
 				LOG4CPLUS_PERROR(logger, "VIDIOC_QUERYBUF");
 				success = false;
@@ -118,7 +129,7 @@ bool V4l2MmapDevice::start()
 			buf.memory      = V4L2_MEMORY_MMAP;
 			buf.index       = i;
 
-			if (-1 == ioctl(m_fd, VIDIOC_QBUF, &buf))
+			if (-1 == xioctl(m_fd, VIDIOC_QBUF, &buf))
 			{
 				LOG4CPLUS_PERROR(logger, "VIDIOC_QBUF");
 				success = false;
@@ -143,7 +154,7 @@ bool V4l2MmapDevice::stop()
 	bool success = true;
 	
 	int type = m_deviceType;
-	if (-1 == ioctl(m_fd, VIDIOC_STREAMOFF, &type))
+	if (-1 == xioctl(m_fd, VIDIOC_STREAMOFF, &type))
 	{
 		LOG4CPLUS_PERROR(logger, "VIDIOC_STREAMOFF");      
 		success = false;
@@ -164,7 +175,7 @@ bool V4l2MmapDevice::stop()
 	req.count               = 0;
 	req.type                = m_deviceType;
 	req.memory              = V4L2_MEMORY_MMAP;
-	if (-1 == ioctl(m_fd, VIDIOC_REQBUFS, &req)) 
+	if (-1 == xioctl(m_fd, VIDIOC_REQBUFS, &req)) 
 	{
 		LOG4CPLUS_PERROR(logger, "VIDIOC_REQBUFS");
 		success = false;
@@ -184,7 +195,7 @@ size_t V4l2MmapDevice::readInternal(char* buffer, size_t bufferSize)
 		buf.type = m_deviceType;
 		buf.memory = V4L2_MEMORY_MMAP;
 
-		if (-1 == ioctl(m_fd, VIDIOC_DQBUF, &buf)) 
+		if (-1 == xioctl(m_fd, VIDIOC_DQBUF, &buf)) 
 		{
 			LOG4CPLUS_PERROR(logger, "readInternal VIDIOC_DQBUF");
 			size = -1;
@@ -199,7 +210,7 @@ size_t V4l2MmapDevice::readInternal(char* buffer, size_t bufferSize)
 			}
 			memcpy(buffer, m_buffer[buf.index].start, size);
 
-			if (-1 == ioctl(m_fd, VIDIOC_QBUF, &buf))
+			if (-1 == xioctl(m_fd, VIDIOC_QBUF, &buf))
 			{
 				LOG4CPLUS_PERROR(logger, "VIDIOC_QBUF");
 				size = -1;
@@ -219,7 +230,7 @@ size_t V4l2MmapDevice::writeInternal(char* buffer, size_t bufferSize)
 		buf.type = m_deviceType;
 		buf.memory = V4L2_MEMORY_MMAP;
 
-		if (-1 == ioctl(m_fd, VIDIOC_DQBUF, &buf)) 
+		if (-1 == xioctl(m_fd, VIDIOC_DQBUF, &buf)) 
 		{
 			LOG4CPLUS_PERROR(logger, "writeInternal VIDIOC_DQBUF");
 			size = -1;
@@ -235,7 +246,7 @@ size_t V4l2MmapDevice::writeInternal(char* buffer, size_t bufferSize)
 			memcpy(m_buffer[buf.index].start, buffer, size);
 			buf.bytesused = size;
 
-			if (-1 == ioctl(m_fd, VIDIOC_QBUF, &buf))
+			if (-1 == xioctl(m_fd, VIDIOC_QBUF, &buf))
 			{
 				LOG4CPLUS_PERROR(logger, "VIDIOC_QBUF");
 				size = -1;
@@ -254,7 +265,7 @@ bool V4l2MmapDevice::startPartialWrite()
 	memset(&m_partialWriteBuf, 0, sizeof(m_partialWriteBuf));
 	m_partialWriteBuf.type = m_deviceType;
 	m_partialWriteBuf.memory = V4L2_MEMORY_MMAP;
-	if (-1 == ioctl(m_fd, VIDIOC_DQBUF, &m_partialWriteBuf))
+	if (-1 == xioctl(m_fd, VIDIOC_DQBUF, &m_partialWriteBuf))
 	{
 		LOG4CPLUS_PERROR(logger, "startPartialWrite VIDIOC_DQBUF");
 		return false;
@@ -296,7 +307,7 @@ bool V4l2MmapDevice::endPartialWrite()
 		m_partialWriteInProgress = false; // abort partial write
 		return true;
 	}
-	if (-1 == ioctl(m_fd, VIDIOC_QBUF, &m_partialWriteBuf))
+	if (-1 == xioctl(m_fd, VIDIOC_QBUF, &m_partialWriteBuf))
 	{
 		LOG4CPLUS_PERROR(logger, "VIDIOC_QBUF");
 		m_partialWriteInProgress = false; // abort partial write
